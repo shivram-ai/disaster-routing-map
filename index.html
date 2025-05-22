@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Disaster Response Routing</title>
+  <style>
+    #map {
+      height: 500px;
+      width: 100%;
+    }
+    #inputs {
+      margin: 10px;
+    }
+    input {
+      margin-right: 10px;
+      padding: 8px;
+    }
+    button {
+      padding: 8px 12px;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="inputs">
+    <input id="source" type="text" placeholder="Enter source location" />
+    <input id="destination" type="text" placeholder="Enter destination location" />
+    <button onclick="calculateRoute()">Show Route</button>
+  </div>
+  <div id="map"></div>
+
+  <script>
+  let map, directionsService, directionsRenderer, floodZones = [];
+
+  function initMap() {
+    map = new google.maps.Map(document.getElementById("map"), {
+      center: { lat: 20.5937, lng: 78.9629 },
+      zoom: 6,
+    });
+
+    directionsService = new google.maps.DirectionsService();
+    directionsRenderer = new google.maps.DirectionsRenderer();
+    directionsRenderer.setMap(map);
+
+    drawFloodZones();
+  }
+
+  function calculateRoute() {
+    const source = document.getElementById("source").value;
+    const destination = document.getElementById("destination").value;
+
+    if (!source || !destination) {
+      alert("Please enter both source and destination.");
+      return;
+    }
+
+    directionsService.route(
+      {
+        origin: source,
+        destination: destination,
+        travelMode: google.maps.TravelMode.DRIVING,
+      },
+      (response, status) => {
+        if (status === "OK") {
+          const route = response.routes[0].overview_path;
+
+          if (isRouteFlooded(route)) {
+            alert("⚠️ Warning: This route passes through a flooded area!");
+            // Optionally: don't render this route
+          } else {
+            directionsRenderer.setDirections(response);
+          }
+        } else {
+          alert("Route calculation failed: " + status);
+        }
+      }
+    );
+  }
+
+  function drawFloodZones() {
+    const floodAreaCoords = [
+      { lat: 13.08, lng: 80.27 },
+      { lat: 13.09, lng: 80.27 },
+      { lat: 13.09, lng: 80.28 },
+      { lat: 13.08, lng: 80.28 }
+    ];
+
+    const floodZone = new google.maps.Polygon({
+      paths: floodAreaCoords,
+      strokeColor: "#FF0000",
+      strokeOpacity: 0.8,
+      strokeWeight: 2,
+      fillColor: "#FF0000",
+      fillOpacity: 0.35,
+    });
+
+    floodZone.setMap(map);
+    floodZones.push(floodZone);
+  }
+
+  // 🚨 Check if route intersects any flood zone
+  function isRouteFlooded(route) {
+    return route.some((point) => {
+      return floodZones.some((zone) => {
+        return google.maps.geometry.poly.containsLocation(point, zone);
+      });
+    });
+  }
+</script>
+
+<!-- You must include geometry library for polygon detection -->
+<script async
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyArS-123HoiENsuv5XGBGwsjroHw48bzzc&callback=initMap&libraries=geometry">
+</script>
+
+
+
+  <!-- Google Maps API with your actual API key -->
+  <script async
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyArS-123HoiENsuv5XGBGwsjroHw48bzzc&callback=initMap">
+  </script>
+</body>
+</html>
